@@ -4,12 +4,30 @@
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>SHOP | Ciel Bleu Toujours</title>
+        <style>
+            body:not(:has(#sprd-main)) {
+                margin: 0;
+                padding: 1em;
+                width: 100vw;
+                height: 100svh;
+                display: flex;
+                align-items: center;
+                #myShop {
+                    font-size: min(30svh, 25vw);
+                }
+                a {
+                    color: black;
+                }
+            }
+        </style>
     </head>
     <body>
         <div id="myShop">
-            <a href="https://ciel-bleu-toujours.myspreadshop.ch"
-                >ciel-bleu-toujours</a
-            >
+            <a href="https://ciel-bleu-toujours.myspreadshop.ch">
+                Ciel <br />
+                Bleu <br />
+                Toujours
+            </a>
         </div>
 
         <script>
