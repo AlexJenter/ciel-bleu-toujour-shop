@@ -20,6 +20,11 @@
             }
             .SprdMain {
                 max-width: initial !important;
+
+                footer {
+                    max-width: initial !important;
+                }
+
                 h1,
                 h2,
                 h3,
@@ -56,7 +61,14 @@
             /* Words fade in over the blue when the page first renders */
             #loader span {
                 opacity: 1;
-                transition: opacity var(--fade-duration) ease 0.2s;
+                transition: opacity var(--fade-duration) ease;
+                transition-delay: calc(0.2s + var(--i, 0) * 0.125s);
+            }
+            #loader span:nth-of-type(2) {
+                --i: 1;
+            }
+            #loader span:nth-of-type(3) {
+                --i: 2;
             }
             @starting-style {
                 #loader span {
