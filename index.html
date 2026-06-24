@@ -5,20 +5,24 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>SHOP | Ciel Bleu Toujours</title>
         <style>
-            body:not(:has(#sprd-main)) {
-                margin: 0;
-                padding: 1em;
-                width: 100vw;
-                height: 100svh;
-                display: flex;
-                align-items: center;
-                #myShop {
-                    font-size: min(30svh, 25vw);
-                }
-                a {
-                    color: black;
-                }
+        body {
+            padding: 0;
+        }
+        body:not(:has(#sprd-main)) {
+            margin: 0;
+            padding: 1em;
+            width: 100vw;
+            height: 100svh;
+            display: flex;
+            align-items: center;
+
+            #myShop {
+                font-size: min(30svh, 25vw);
             }
+            a {
+                color: black;
+            }
+        }
         </style>
     </head>
     <body>
@@ -29,19 +33,18 @@
                 Toujours
             </a>
         </div>
-
         <script>
-            var spread_shop_config = {
-                shopName: "ciel-bleu-toujours",
-                locale: "de_CH",
-                prefix: "https://ciel-bleu-toujours.myspreadshop.ch",
-                baseId: "myShop",
-            };
-        </script>
+        var spread_shop_config = {
+shopName: "ciel-bleu-toujours",
+locale: "de_CH",
+prefix: "https://ciel-bleu-toujours.myspreadshop.ch",
+baseId: "myShop",
+};
+</script>
 
         <script
-            type="text/javascript"
-            src="https://ciel-bleu-toujours.myspreadshop.ch/shopfiles/shopclient/shopclient.nocache.js"
-        ></script>
+        type="text/javascript"
+        src="https://ciel-bleu-toujours.myspreadshop.ch/shopfiles/shopclient/shopclient.nocache.js"
+    ></script>
     </body>
 </html>
