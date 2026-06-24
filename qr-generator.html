@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QR Generator</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      background: #0c0c0e;
+      color: #e8e8e8;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      padding: 20px 28px;
+      border-bottom: 1px solid #1e1e22;
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+    }
+    header h1 { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
+    header p { font-size: 12px; color: #555; }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      flex: 1;
+      min-height: 0;
+    }
+
+    /* ── Left panel ── */
+    .controls {
+      border-right: 1px solid #1e1e22;
+      padding: 24px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      overflow-y: auto;
+    }
+
+    .field-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: #555;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      margin-bottom: 7px;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      background: #141416;
+      border: 1px solid #2a2a30;
+      color: #e8e8e8;
+      padding: 9px 11px;
+      border-radius: 7px;
+      font-size: 13px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    input[type="text"]:focus { border-color: #444; }
+    input[type="text"]::placeholder { color: #444; }
+
+    .drop-zone {
+      position: relative;
+      border: 1px dashed #2a2a30;
+      border-radius: 8px;
+      padding: 20px 16px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .drop-zone:hover, .drop-zone.over { border-color: #555; background: #141416; }
+    .drop-zone input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+    }
+    .drop-zone p { font-size: 12px; color: #555; line-height: 1.5; }
+    #logoThumb {
+      width: 44px; height: 44px;
+      object-fit: contain;
+      margin: 0 auto 8px;
+      display: none;
+      border-radius: 4px;
+    }
+    #clearLogo {
+      display: none;
+      font-size: 11px;
+      color: #555;
+      margin-top: 6px;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+    #clearLogo:hover { color: #e8e8e8; }
+
+    .slider-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 7px;
+    }
+    .slider-val {
+      font-size: 12px;
+      font-weight: 600;
+      color: #e8e8e8;
+      min-width: 36px;
+      text-align: right;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      height: 4px;
+      appearance: none;
+      background: #2a2a30;
+      border-radius: 2px;
+      outline: none;
+      cursor: pointer;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      appearance: none;
+      width: 14px; height: 14px;
+      border-radius: 50%;
+      background: #fff;
+      cursor: pointer;
+    }
+
+    .hint { font-size: 11px; color: #444; margin-top: 6px; line-height: 1.5; }
+
+    .sep { height: 1px; background: #1e1e22; }
+
+    /* ── Stats ── */
+    .stats {
+      background: #141416;
+      border: 1px solid #1e1e22;
+      border-radius: 8px;
+      padding: 14px;
+      display: none;
+      flex-direction: column;
+      gap: 9px;
+    }
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .stat-key { font-size: 11px; color: #555; }
+    .stat-val { font-size: 11px; font-weight: 700; }
+    .green { color: #4ade80; }
+    .yellow { color: #facc15; }
+    .red { color: #f87171; }
+
+    .budget-bar {
+      height: 3px;
+      background: #2a2a30;
+      border-radius: 2px;
+      overflow: hidden;
+      margin-top: 2px;
+    }
+    .budget-fill {
+      height: 100%;
+      border-radius: 2px;
+      transition: width 0.4s, background-color 0.4s;
+    }
+
+    /* ── Buttons ── */
+    .btn-row { display: flex; gap: 8px; }
+    .btn {
+      flex: 1;
+      padding: 10px;
+      border-radius: 7px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+      transition: background 0.15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .btn-primary { background: #e8e8e8; color: #0c0c0e; }
+    .btn-primary:hover { background: #fff; }
+    .btn-primary:disabled { background: #2a2a30; color: #555; cursor: default; }
+    .btn-secondary { background: #1a1a1e; color: #aaa; border: 1px solid #2a2a30; flex: 0 0 auto; padding: 10px 14px; }
+    .btn-secondary:hover { background: #222228; }
+    .btn-secondary:disabled { opacity: 0.4; cursor: default; }
+
+    /* ── Preview pane ── */
+    .preview {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 32px;
+      background: #0f0f11;
+      position: relative;
+    }
+
+    #qrCanvas {
+      display: none;
+      border-radius: 10px;
+      box-shadow: 0 0 0 1px rgba(255,255,255,0.04), 0 20px 60px rgba(0,0,0,0.6);
+    }
+
+    .empty {
+      text-align: center;
+      color: #333;
+    }
+    .empty svg { display: block; margin: 0 auto 14px; }
+    .empty p { font-size: 13px; }
+
+    .badge {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 4px 8px;
+      border-radius: 4px;
+      background: #1a1a1e;
+      border: 1px solid #2a2a30;
+      color: #555;
+      display: none;
+    }
+    .badge.active { border-color: #4ade80; color: #4ade80; }
+
+    /* Rounded module option */
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .toggle-row label { font-size: 12px; color: #888; cursor: pointer; }
+    .toggle {
+      width: 32px; height: 18px;
+      background: #2a2a30;
+      border-radius: 9px;
+      position: relative;
+      cursor: pointer;
+      transition: background 0.2s;
+      border: none;
+      flex-shrink: 0;
+    }
+    .toggle.on { background: #4ade80; }
+    .toggle::after {
+      content: '';
+      position: absolute;
+      width: 12px; height: 12px;
+      background: #fff;
+      border-radius: 50%;
+      top: 3px; left: 3px;
+      transition: transform 0.2s;
+    }
+    .toggle.on::after { transform: translateX(14px); }
+
+    @media (max-width: 700px) {
+      .layout { grid-template-columns: 1fr; }
+      .controls { border-right: none; border-bottom: 1px solid #1e1e22; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>QR Generator</h1>
+  <p>ECC-aware logo placement · Level H · Module-snapped</p>
+</header>
+
+<div class="layout">
+  <div class="controls">
+
+    <div>
+      <div class="field-label">URL or Text</div>
+      <input type="text" id="textInput" placeholder="https://example.com" value="https://example.com">
+    </div>
+
+    <div class="sep"></div>
+
+    <div>
+      <div class="field-label">Logo <span style="color:#444;font-size:10px;text-transform:none;letter-spacing:0">(optional)</span></div>
+      <div class="drop-zone" id="dropZone">
+        <input type="file" id="logoFile" accept="image/*">
+        <img id="logoThumb" alt="Logo preview">
+        <p id="dropText">Drop image here or click to browse<br><span style="font-size:10px">PNG · SVG · WebP · JPG</span></p>
+        <div id="clearLogo" onclick="clearLogo(event)">Remove logo</div>
+      </div>
+    </div>
+
+    <div>
+      <div class="slider-row">
+        <div class="field-label" style="margin:0">Logo Area</div>
+        <div class="slider-val"><span id="sizeVal">20</span>%</div>
+      </div>
+      <input type="range" id="logoSize" min="5" max="30" value="20" step="1">
+      <div class="hint">Percentage of total QR area. Stay ≤ 25% for reliable scanning.</div>
+    </div>
+
+    <div>
+      <div class="slider-row">
+        <div class="field-label" style="margin:0">Padding</div>
+        <div class="slider-val"><span id="padVal">2</span> mod</div>
+      </div>
+      <input type="range" id="logoPad" min="0" max="6" value="2" step="1">
+      <div class="hint">White border separating logo from QR modules.</div>
+    </div>
+
+    <div>
+      <div class="toggle-row">
+        <label for="roundedToggle">Rounded modules</label>
+        <button class="toggle" id="roundedToggle" onclick="this.classList.toggle('on')" role="switch"></button>
+      </div>
+    </div>
+
+    <div class="sep"></div>
+
+    <div class="stats" id="stats">
+      <div class="stat-row">
+        <span class="stat-key">Error Correction</span>
+        <span class="stat-val green">Level H · 30% recovery</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-key">Modules covered</span>
+        <span class="stat-val" id="sCovered">—</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-key">Dark flipped to white</span>
+        <span class="stat-val" id="sDarkFlipped">—</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-key">ECC budget used</span>
+        <span class="stat-val" id="sECC">—</span>
+      </div>
+      <div class="budget-bar"><div class="budget-fill" id="budgetFill" style="width:0"></div></div>
+      <div class="stat-row">
+        <span class="stat-key">Logo offset from center</span>
+        <span class="stat-val" id="sOffset">—</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-key">QR version / modules</span>
+        <span class="stat-val" id="sVersion">—</span>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-primary" id="renderBtn" onclick="optimizeAndRender()">Optimize &amp; Render</button>
+      <button class="btn btn-secondary" id="dlBtn" onclick="downloadQR()" disabled title="Download PNG">↓</button>
+    </div>
+
+  </div>
+
+  <div class="preview">
+    <div class="empty" id="emptyState">
+      <svg width="56" height="56" viewBox="0 0 56 56" fill="none">
+        <rect x="6" y="6" width="18" height="18" rx="2" stroke="#333" stroke-width="2"/>
+        <rect x="32" y="6" width="18" height="18" rx="2" stroke="#333" stroke-width="2"/>
+        <rect x="6" y="32" width="18" height="18" rx="2" stroke="#333" stroke-width="2"/>
+        <rect x="10" y="10" width="10" height="10" fill="#333" rx="1"/>
+        <rect x="36" y="10" width="10" height="10" fill="#333" rx="1"/>
+        <rect x="10" y="36" width="10" height="10" fill="#333" rx="1"/>
+        <rect x="32" y="32" width="5" height="5" fill="#333" rx="1"/>
+        <rect x="40" y="32" width="5" height="5" fill="#333" rx="1"/>
+        <rect x="32" y="40" width="5" height="5" fill="#333" rx="1"/>
+        <rect x="40" y="40" width="5" height="5" fill="#333" rx="1"/>
+      </svg>
+      <p>Enter a URL and click Render</p>
+    </div>
+    <canvas id="qrCanvas"></canvas>
+    <div class="badge" id="badge">Optimizing…</div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<script>
+// ─── State ───────────────────────────────────────────────────────────────────
+let logoImg = null;
+let SCALE = 12;     // recomputed each render to avoid CSS scaling artifacts
+const QUIET = 4;    // quiet zone in modules
+const DOWNLOAD_SCALE = 24; // high-res for PNG export
+
+// ─── Logo handling ────────────────────────────────────────────────────────────
+document.getElementById('logoFile').addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (file) loadLogoFile(file);
+});
+
+const dropZone = document.getElementById('dropZone');
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('over'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('over');
+  const file = e.dataTransfer.files[0];
+  if (file && file.type.startsWith('image/')) loadLogoFile(file);
+});
+
+function loadLogoFile(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = new Image();
+    img.onload = () => {
+      logoImg = img;
+      const thumb = document.getElementById('logoThumb');
+      thumb.src = e.target.result;
+      thumb.style.display = 'block';
+      document.getElementById('dropText').style.display = 'none';
+      document.getElementById('clearLogo').style.display = 'block';
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function clearLogo(e) {
+  e.stopPropagation();
+  logoImg = null;
+  document.getElementById('logoThumb').style.display = 'none';
+  document.getElementById('dropText').style.display = 'block';
+  document.getElementById('clearLogo').style.display = 'none';
+  document.getElementById('logoFile').value = '';
+}
+
+// ─── Slider labels ────────────────────────────────────────────────────────────
+document.getElementById('logoSize').addEventListener('input', function() {
+  document.getElementById('sizeVal').textContent = this.value;
+});
+document.getElementById('logoPad').addEventListener('input', function() {
+  document.getElementById('padVal').textContent = this.value;
+});
+
+// ─── Structural module detection ──────────────────────────────────────────────
+// Finder patterns and alignment patterns must stay square for reliable scanning.
+
+function isFinderModule(r, c, mc) {
+  return (r < 7 && c < 7) || (r < 7 && c >= mc - 7) || (r >= mc - 7 && c < 7);
+}
+
+// QR spec Table E.1 — alignment pattern center coordinates by version
+const ALIGN_POS = [
+  null, [],
+  [6,18], [6,22], [6,26], [6,30], [6,34],
+  [6,22,38], [6,24,42], [6,26,46], [6,28,50],
+  [6,30,54], [6,32,58], [6,34,62], [6,26,46,66], [6,26,48,70],
+  [6,26,50,74], [6,30,54,78], [6,30,56,82], [6,30,58,86], [6,34,62,90],
+  [6,28,50,72,94], [6,26,50,74,98], [6,30,54,78,102], [6,28,54,80,106],
+  [6,32,58,84,110], [6,30,58,86,114], [6,34,62,90,118],
+  [6,26,50,74,98,122], [6,30,54,78,102,126], [6,26,52,78,104,130],
+  [6,30,56,82,108,132], [6,34,60,86,112,136], [6,30,58,86,114,142],
+  [6,34,62,90,118,146], [6,30,54,78,102,126,150],
+  [6,24,50,76,102,128,154], [6,28,54,80,106,132,158],
+  [6,32,58,84,110,136,162], [6,26,54,82,110,138,166],
+  [6,30,58,86,114,142,170],
+];
+
+function isAlignmentModule(r, c, mc) {
+  const version = (mc - 17) / 4;
+  if (version < 2 || version > 40) return false;
+  const pos = ALIGN_POS[version] || [];
+  for (const ar of pos) {
+    for (const ac of pos) {
+      // Skip positions that overlap finder pattern areas
+      if (ar <= 8 && ac <= 8) continue;
+      if (ar <= 8 && ac >= mc - 8) continue;
+      if (ar >= mc - 8 && ac <= 8) continue;
+      if (Math.abs(r - ar) <= 2 && Math.abs(c - ac) <= 2) return true;
+    }
+  }
+  return false;
+}
+
+function isStructural(r, c, mc) {
+  return isFinderModule(r, c, mc) || isAlignmentModule(r, c, mc);
+}
+
+// ─── Core: generate + optimize ────────────────────────────────────────────────
+function buildGrid(qr) {
+  const mc = qr.getModuleCount();
+  const grid = [];
+  for (let r = 0; r < mc; r++) {
+    grid[r] = [];
+    for (let c = 0; c < mc; c++) {
+      grid[r][c] = qr.isDark(r, c) ? 1 : 0;
+    }
+  }
+  return grid;
+}
+
+/**
+ * Find the offset (in modules) from center that minimizes dark modules
+ * covered by the white padding area.  The logo itself is masked regardless,
+ * so only the padding contributes new "errors" to the ECC budget.
+ */
+function findBestOffset(grid, mc, totalMod, padMod) {
+  const center = Math.floor(mc / 2);
+  let best = { dr: 0, dc: 0 };
+  let bestScore = Infinity;
+
+  for (let dr = -4; dr <= 4; dr++) {
+    for (let dc = -4; dc <= 4; dc++) {
+      const startR = center - Math.floor(totalMod / 2) + dr;
+      const startC = center - Math.floor(totalMod / 2) + dc;
+      let score = 0;
+
+      for (let r = startR; r < startR + totalMod; r++) {
+        for (let c = startC; c < startC + totalMod; c++) {
+          if (r < 0 || r >= mc || c < 0 || c >= mc) {
+            score += 500;
+            continue;
+          }
+          // Never let the logo box touch finder patterns or alignment patterns —
+          // use a 9-module exclusion zone (finder 7 + separator 1 + format info 1).
+          const inFinderZone = (r <= 8 && c <= 8) ||
+                               (r <= 8 && c >= mc - 9) ||
+                               (r >= mc - 9 && c <= 8);
+          if (inFinderZone || isAlignmentModule(r, c, mc)) {
+            score += 500;
+            continue;
+          }
+          // Only penalize dark modules in the padding ring (white bg turns them white = errors)
+          const inPad = r < startR + padMod || r >= startR + totalMod - padMod ||
+                        c < startC + padMod || c >= startC + totalMod - padMod;
+          if (inPad && grid[r][c] === 1) score++;
+        }
+      }
+
+      if (score < bestScore) {
+        bestScore = score;
+        best = { dr, dc };
+      }
+    }
+  }
+  return best;
+}
+
+function computeCoverage(grid, mc, startR, startC, totalMod, padMod) {
+  let covered = 0, darkInPad = 0, darkUnderLogo = 0;
+  for (let r = startR; r < startR + totalMod; r++) {
+    for (let c = startC; c < startC + totalMod; c++) {
+      if (r < 0 || r >= mc || c < 0 || c >= mc) continue;
+      covered++;
+      const inPad = r < startR + padMod || r >= startR + totalMod - padMod ||
+                    c < startC + padMod || c >= startC + totalMod - padMod;
+      if (inPad && grid[r][c] === 1) darkInPad++;
+      if (!inPad && grid[r][c] === 1) darkUnderLogo++;
+    }
+  }
+  return { covered, darkInPad, darkUnderLogo };
+}
+
+function optimizeAndRender() {
+  const text = document.getElementById('textInput').value.trim();
+  if (!text) return;
+
+  const badge = document.getElementById('badge');
+  badge.textContent = 'Optimizing…';
+  badge.className = 'badge active';
+  badge.style.display = 'block';
+
+  // Small delay so the badge renders before synchronous work
+  setTimeout(() => doRender(text, badge), 16);
+}
+
+function doRender(text, badge) {
+  // ── Generate QR (Level H) ──
+  let qr;
+  try {
+    qr = qrcode(0, 'H');
+    qr.addData(text);
+    qr.make();
+  } catch (e) {
+    alert('Could not encode text. Try shortening the URL.');
+    badge.style.display = 'none';
+    return;
+  }
+
+  // When a logo is present, boost the QR version by +2.
+  // Reason: a logo corrupts a contiguous block of codewords. Version 4 Level H has
+  // only ~16 correctable codeword errors per RS block — a 15×17 logo region easily
+  // exceeds that for one block even if the global ECC budget looks fine. A higher
+  // version spreads the same URL data across more codewords with proportionally
+  // larger per-block EC capacity, so the logo covers far fewer codewords per block.
+  if (logoImg) {
+    try {
+      const autoVersion = (qr.getModuleCount() - 17) / 4;
+      const boostedVersion = Math.min(40, autoVersion + 2);
+      const qr2 = qrcode(boostedVersion, 'H');
+      qr2.addData(text);
+      qr2.make();
+      qr = qr2;
+    } catch (_) { /* fall back to auto version */ }
+  }
+
+  const mc = qr.getModuleCount();
+  const grid = buildGrid(qr);
+
+  // Compute SCALE so the canvas fits ~380px without any CSS rescaling.
+  // Non-integer CSS scaling creates uneven module sizes that break scanner detection.
+  SCALE = Math.max(6, Math.floor(380 / (mc + QUIET * 2)));
+
+  // ── Logo sizing in module units ──
+  const logoSizePct = parseInt(document.getElementById('logoSize').value);
+  const padMod = parseInt(document.getElementById('logoPad').value);
+  const rounded = document.getElementById('roundedToggle').classList.contains('on');
+
+  // Logo area fraction → side length in modules (area = side², so side = sqrt(fraction) * mc)
+  const logoMod = Math.max(1, Math.round(Math.sqrt(logoSizePct / 100) * mc));
+  const totalMod = logoImg ? logoMod + padMod * 2 : 0;
+
+  // ── Find optimal offset ──
+  const offset = (logoImg && totalMod > 0)
+    ? findBestOffset(grid, mc, totalMod, padMod)
+    : { dr: 0, dc: 0 };
+
+  const center = Math.floor(mc / 2);
+  const startR = center - Math.floor(totalMod / 2) + offset.dr;
+  const startC = center - Math.floor(totalMod / 2) + offset.dc;
+
+  // ── Coverage stats ──
+  const cov = logoImg
+    ? computeCoverage(grid, mc, startR, startC, totalMod, padMod)
+    : { covered: 0, darkInPad: 0, darkUnderLogo: 0 };
+
+  // ── Render to canvas ──
+  const totalPx = (mc + QUIET * 2) * SCALE;
+  const canvas = document.getElementById('qrCanvas');
+  canvas.width = totalPx;
+  canvas.height = totalPx;
+  const ctx = canvas.getContext('2d');
+
+  // White background
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, totalPx, totalPx);
+
+  // Draw modules
+  ctx.fillStyle = '#000000';
+  for (let r = 0; r < mc; r++) {
+    for (let c = 0; c < mc; c++) {
+      if (!grid[r][c]) continue;
+      const x = (c + QUIET) * SCALE;
+      const y = (r + QUIET) * SCALE;
+      if (rounded && !isStructural(r, c, mc)) {
+        const r2 = SCALE * 0.28;
+        ctx.beginPath();
+        ctx.roundRect(x, y, SCALE, SCALE, r2);
+        ctx.fill();
+      } else {
+        ctx.fillRect(x, y, SCALE, SCALE);
+      }
+    }
+  }
+
+  // ── Draw logo + white pad ──
+  if (logoImg && totalMod > 0) {
+    const padPx = padMod * SCALE;
+    const logoPx = logoMod * SCALE;
+    const totalPad = totalMod * SCALE;
+    const x = (startC + QUIET) * SCALE;
+    const y = (startR + QUIET) * SCALE;
+
+    // White padding background
+    ctx.fillStyle = '#ffffff';
+    if (rounded) {
+      const r2 = SCALE * 0.5;
+      ctx.beginPath();
+      ctx.roundRect(x, y, totalPad, totalPad, r2);
+      ctx.fill();
+    } else {
+      ctx.fillRect(x, y, totalPad, totalPad);
+    }
+
+    // Logo image (preserve aspect ratio, centered in logo area)
+    const aspect = logoImg.naturalWidth / logoImg.naturalHeight;
+    let lw = logoPx, lh = logoPx;
+    if (aspect > 1) lh = logoPx / aspect;
+    else lw = logoPx * aspect;
+    const lx = x + padPx + (logoPx - lw) / 2;
+    const ly = y + padPx + (logoPx - lh) / 2;
+    ctx.drawImage(logoImg, lx, ly, lw, lh);
+  }
+
+  // ── Show canvas ──
+  canvas.style.display = 'block';
+  document.getElementById('emptyState').style.display = 'none';
+  document.getElementById('dlBtn').disabled = false;
+
+  // ── Save params for high-res download ──
+  _lastRenderParams = { mc, grid, offset, startR, startC, totalMod, padMod, logoMod, rounded };
+
+  // ── Update stats ──
+  updateStats(mc, cov, offset, logoImg !== null);
+
+  badge.textContent = 'Done';
+  badge.className = 'badge active';
+  setTimeout(() => { badge.style.display = 'none'; }, 1200);
+}
+
+function updateStats(mc, cov, offset, hasLogo) {
+  const statsEl = document.getElementById('stats');
+  statsEl.style.display = 'flex';
+
+  const totalModules = mc * mc;
+  // ECC budget: Level H recovers ~30% of total codewords.
+  // Conservative estimate: each covered dark module in padding = 1 potential error.
+  // Dark modules under logo area contribute too but scanners may partially read logo pixels.
+  const potentialErrors = cov.darkInPad + Math.ceil(cov.darkUnderLogo * 0.6);
+  const eccCapacity = Math.floor(totalModules * 0.30);
+  const eccPct = Math.min(100, Math.round((potentialErrors / eccCapacity) * 100));
+
+  document.getElementById('sCovered').textContent = hasLogo
+    ? `${cov.covered} / ${totalModules} (${Math.round(cov.covered / totalModules * 100)}%)`
+    : 'No logo';
+
+  document.getElementById('sDarkFlipped').textContent = hasLogo
+    ? `${cov.darkInPad} in pad + ${cov.darkUnderLogo} under logo`
+    : '—';
+
+  const eccEl = document.getElementById('sECC');
+  const fillEl = document.getElementById('budgetFill');
+  if (hasLogo) {
+    eccEl.textContent = `${eccPct}%`;
+    eccEl.className = 'stat-val ' + (eccPct < 60 ? 'green' : eccPct < 85 ? 'yellow' : 'red');
+    fillEl.style.width = eccPct + '%';
+    fillEl.style.backgroundColor = eccPct < 60 ? '#4ade80' : eccPct < 85 ? '#facc15' : '#f87171';
+  } else {
+    eccEl.textContent = '0% (no logo)';
+    eccEl.className = 'stat-val green';
+    fillEl.style.width = '0';
+  }
+
+  document.getElementById('sOffset').textContent = hasLogo
+    ? (offset.dr === 0 && offset.dc === 0 ? 'Center (already optimal)' : `row ${offset.dr > 0 ? '+' : ''}${offset.dr}, col ${offset.dc > 0 ? '+' : ''}${offset.dc} mod`)
+    : '—';
+
+  const qrVer = (mc - 17) / 4;
+  document.getElementById('sVersion').textContent = hasLogo
+    ? `${mc} × ${mc} modules (v${qrVer}, +2 boost)`
+    : `${mc} × ${mc} modules (v${qrVer})`;
+}
+
+// ─── Download — re-render at high resolution ──────────────────────────────────
+let _lastRenderParams = null; // saved by doRender for download use
+
+function downloadQR() {
+  if (!_lastRenderParams) return;
+  const { text, mc, grid, offset, startR, startC, totalMod, padMod, logoMod, rounded } = _lastRenderParams;
+  const S = DOWNLOAD_SCALE;
+  const totalPx = (mc + QUIET * 2) * S;
+  const off = document.createElement('canvas');
+  off.width = totalPx;
+  off.height = totalPx;
+  const ctx = off.getContext('2d');
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, totalPx, totalPx);
+  ctx.fillStyle = '#000000';
+  for (let r = 0; r < mc; r++) {
+    for (let c = 0; c < mc; c++) {
+      if (!grid[r][c]) continue;
+      const x = (c + QUIET) * S, y = (r + QUIET) * S;
+      if (rounded && !isStructural(r, c, mc)) {
+        ctx.beginPath();
+        ctx.roundRect(x, y, S, S, S * 0.28);
+        ctx.fill();
+      } else {
+        ctx.fillRect(x, y, S, S);
+      }
+    }
+  }
+  if (logoImg && totalMod > 0) {
+    const padPx = padMod * S, logoPx = logoMod * S, totalPad = totalMod * S;
+    const x = (startC + QUIET) * S, y = (startR + QUIET) * S;
+    ctx.fillStyle = '#ffffff';
+    if (rounded) {
+      ctx.beginPath(); ctx.roundRect(x, y, totalPad, totalPad, S * 0.5); ctx.fill();
+    } else {
+      ctx.fillRect(x, y, totalPad, totalPad);
+    }
+    const aspect = logoImg.naturalWidth / logoImg.naturalHeight;
+    let lw = logoPx, lh = logoPx;
+    if (aspect > 1) lh = logoPx / aspect; else lw = logoPx * aspect;
+    ctx.drawImage(logoImg, x + padPx + (logoPx - lw) / 2, y + padPx + (logoPx - lh) / 2, lw, lh);
+  }
+  const a = document.createElement('a');
+  a.download = 'qr-code.png';
+  a.href = off.toDataURL('image/png');
+  a.click();
+}
+
+// ─── Enter key ────────────────────────────────────────────────────────────────
+document.getElementById('textInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') optimizeAndRender();
+});
+
+// Auto-render on slider change if already rendered
+function reRenderIfVisible() {
+  if (document.getElementById('qrCanvas').style.display !== 'none') {
+    optimizeAndRender();
+  }
+}
+document.getElementById('logoSize').addEventListener('change', reRenderIfVisible);
+document.getElementById('logoPad').addEventListener('change', reRenderIfVisible);
+document.getElementById('roundedToggle').addEventListener('click', reRenderIfVisible);
+</script>
+</body>
+</html>
