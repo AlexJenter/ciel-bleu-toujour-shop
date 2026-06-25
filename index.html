@@ -33,16 +33,35 @@
                 header {
                     font-family: "Abril Fatface", serif;
                 }
+
+                @media screen and (min-width: 768px) {
+                    .sprd-startpage-teaser__link {
+                        min-height: 400px !important;
+                    }
+                }
             }
             .sprd-nav-link {
                 font-size: 21px !important;
             }
             .sprd-info-footer__heading {
-                font-size: 3rem !important;
+                font-size: 2.3rem !important;
                 padding: 1em 1rem !important;
             }
             .sprd-info-footer__toggle {
                 padding: 0 !important;
+            }
+            footer::after {
+                content: "Ciel Bleu Toujours";
+                font-family: "Abril Fatface", serif;
+                display: flex;
+                justify-content: space-between;
+                word-spacing: 3cqi;
+                font-size: 11cqi;
+                background-color: #000;
+                color: #fefefe;
+            }
+            .sprd-service-footer {
+                padding-block: 9rem 3rem !important;
             }
             #loader {
                 font-family: "Abril Fatface", serif;
